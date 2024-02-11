@@ -1,8 +1,8 @@
-rdzTTGOsonde
+rdzTTGOsonde_Horus
 ============
 
-This a decoder for radiosonde RS41, RS92, DFM06/09/17, M10/M20, and MP3H
-based on a TTGO LoRa ESP32 board.
+This a decoder for radiosonde RS41, DFM06/09/17 with attempt to decode Horus-V2
+based on a TTGO LoRa ESP32 board. <Do not attempt to use the current code>
 
 It supports OLED displays (SSD1306, SH1106) and TFT displays (ILI9225, ILI9341/9342).
 
@@ -23,12 +23,8 @@ for details on supported boards, and additional setup instructions.
 
 Manufacturer | Model | Position | Temperature | Humidity | Pressure
 -------------|-------|----------|-------------|----------|----------
-Vaisala | RS92-SGP | :heavy_check_mark: | :heavy_check_mark: | :x: | :x:
 Vaisala | RS41-SG/SGP/SGM | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: (for -SGP)
 Graw | DFM06/09/17 | :heavy_check_mark: | :heavy_check_mark: | :x: | :x:
-Meteomodem | M10 | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | Not Sent
-Meteomodem | M20 | :heavy_check_mark: | :x: | :x: | Not Sent
-Meteo-Radiy | MP3-H1 (MRZ-H1) | :heavy_check_mark: | :x: | :x: | :x: 
 
 SondeHub integration has mainly been tested with RS41 and DFM. 
 
