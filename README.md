@@ -1,8 +1,11 @@
 rdzTTGOsonde_Horus
 ============
+Current code has removed several radiosonde models from the decoder list.  It may or may not run 
+for RS41 or DFM radiosondes. Other models have been removed.
+I Suggest this code not be used until proven to function. Integration of the Horus decoder has not begun.
 
 This a decoder for radiosonde RS41, DFM06/09/17 with attempt to decode Horus-V2
-based on a TTGO LoRa ESP32 board. <Do not attempt to use the current code>
+based on a TTGO LoRa ESP32 board. Do not attempt to use the current code
 
 It supports OLED displays (SSD1306, SH1106) and TFT displays (ILI9225, ILI9341/9342).
 
