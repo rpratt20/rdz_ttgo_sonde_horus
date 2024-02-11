@@ -1,4 +1,4 @@
-#include "../features.h"
+""" #include "../features.h"
 #if FEATURE_RS92
 
 /* RS92 decoder functions */
@@ -590,3 +590,4 @@ int RS92::waitRXcomplete() {
 
 RS92 rs92 = RS92();
 #endif
+"""

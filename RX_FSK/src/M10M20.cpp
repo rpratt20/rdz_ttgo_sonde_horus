@@ -1,4 +1,4 @@
-
+"""
 /* M10 and M20 decoder functions */
 
 #include "M10M20.h"
@@ -655,3 +655,4 @@ int M10M20::decodeframeM20(uint8_t *data) {
 
 
 M10M20 m10m20 = M10M20();
+"""

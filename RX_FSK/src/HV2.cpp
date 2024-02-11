@@ -1,27 +1,27 @@
 
-/* MP3H decoder functions */
+/* HV2 decoder functions */
 
-#include "MP3H.h"
+#include "HV2.h"
 #include "SX1278FSK.h"
 #include "rsc.h"
 #include "Sonde.h"
 #include <SPIFFS.h>
 
-#define MP3H_DEBUG 1
+#define HV2_DEBUG 1
 
-#if MP3H_DEBUG
-#define MP3H_DBG(x) x
+#if HV2_DEBUG
+#define HV2_DBG(x) x
 #else
-#define MP3H_DBG(x)
+#define HV2_DBG(x)
 #endif
 
-static struct st_mp3hstate {
+static struct st_HV2state {
 	uint32_t id1, id2;
 	uint8_t idok;
 	uint32_t gpsdate;
 	uint32_t gpsdatetime;
 	bool dateok;
-} mp3hstate;
+} HV2state;
 
 static byte data1[512];
 static byte *dataptr=data1;
@@ -35,7 +35,7 @@ static int headerDetected = 0;
 
 extern uint16_t MON[];
 
-decoderSetupCfg mp3hSetupCfg = {
+decoderSetupCfg HV2SetupCfg = {
 	.bitrate = 2400,
 	.rx_cfg = 0x00,
 	.sync_cfg = 0x70,
@@ -44,35 +44,49 @@ decoderSetupCfg mp3hSetupCfg = {
 	.preamble_cfg = 0x00 | 0x00 | 0x1F
 };
 
-int MP3H::setup(float frequency, int /*type*/) 
+int HV2::setup(float frequency, int /*type*/) 
 {
-	MP3H_DBG(Serial.println("Setup sx1278 for MP3H sonde"));;
+	HV2
+_DBG(Serial.println("Setup sx1278 for HV2
+ sonde"));;
 	if(sx1278.ON()!=0) {
-		MP3H_DBG(Serial.println("Setting SX1278 power on FAILED"));
+		HV2
+    _DBG(Serial.println("Setting SX1278 power on FAILED"));
 		return 1;
 	}
 	// setFSK: switches to FSK standby mode
 	if(sx1278.setFSK()!=0) {
-		MP3H_DBG(Serial.println("Setting FSK mode FAILED"));
+		HV2
+    _DBG(Serial.println("Setting FSK mode FAILED"));
 		return 1;
 	}
-        Serial.print("MP3H: setting RX frequency to ");
+        Serial.print("HV2
+    : setting RX frequency to ");
         Serial.println(frequency);
         int res = sx1278.setFrequency(frequency);
 	// Test: maybe fix issue after spectrum display?
 	sx1278.writeRegister(REG_PLL_HOP, 0);
 
-        if(sx1278.setAFCBandwidth(sonde.config.mp3h.agcbw)!=0) {
-                MP3H_DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.mp3h.agcbw));
+        if(sx1278.setAFCBandwidth(sonde.config.HV2
+    .agcbw)!=0) {
+                HV2
+            _DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.HV2
+            .agcbw));
                 return 1;
         }
-        if(sx1278.setRxBandwidth(sonde.config.mp3h.rxbw)!=0) {
-                MP3H_DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.mp3h.rxbw));
+        if(sx1278.setRxBandwidth(sonde.config.HV2
+    .rxbw)!=0) {
+                HV2
+            _DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.HV2
+            .rxbw));
                 return 1;
         }
 
 //// Step 2: Real reception
-	if(DecoderBase::setup(mp3hSetupCfg, sonde.config.mp3h.agcbw, sonde.config.mp3h.rxbw)!=0) {
+	if(DecoderBase::setup(HV2
+SetupCfg, sonde.config.HV2
+.agcbw, sonde.config.HV2
+.rxbw)!=0) {
 		return 1;
 	}
 #if 0
@@ -80,17 +94,25 @@ int MP3H::setup(float frequency, int /*type*/)
 	// FSK standby mode, seems like otherweise baudrate cannot be changed?
 	sx1278.setFSK();
 	if(sx1278.setBitrate(2400)!=0) {
-		MP3H_DBG(Serial.println("Setting bitrate 2400bit/s FAILED"));
+		HV2
+    _DBG(Serial.println("Setting bitrate 2400bit/s FAILED"));
 		return 1;
 	}
-	MP3H_DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
+	HV2
+_DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
 	// Probably not necessary, as this was set before
-        if(sx1278.setAFCBandwidth(sonde.config.mp3h.agcbw)!=0) {
-                MP3H_DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.mp3h.agcbw));
+        if(sx1278.setAFCBandwidth(sonde.config.HV2
+    .agcbw)!=0) {
+                HV2
+            _DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.HV2
+            .agcbw));
                 return 1;
         }
-        if(sx1278.setRxBandwidth(sonde.config.mp3h.rxbw)!=0) {
-                MP3H_DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.mp3h.rxbw));
+        if(sx1278.setRxBandwidth(sonde.config.HV2
+    .rxbw)!=0) {
+                HV2
+            _DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.HV2
+            .rxbw));
                 return 1;
         }
 
@@ -98,18 +120,21 @@ int MP3H::setup(float frequency, int /*type*/)
 	//if(sx1278.setRxConf(0x1E)!=0) {
 	// Disable auto-AFC, auto-AGC, RX Trigger by preamble
 	if(sx1278.setRxConf(0x00)!=0) {
-		MP3H_DBG(Serial.println("Setting RX Config FAILED"));
+		HV2
+    _DBG(Serial.println("Setting RX Config FAILED"));
 		return 1;
 	}
 	// version 1, working with continuous RX
 	const char *SYNC="\x66\x66";
 	if(sx1278.setSyncConf(0x70, 1, (const uint8_t *)SYNC)!=0) {
-		MP3H_DBG(Serial.println("Setting SYNC Config FAILED"));
+		HV2
+    _DBG(Serial.println("Setting SYNC Config FAILED"));
 		return 1;
 	}
         // Preamble detection off (+ size 1 byte, maximum tolerance; should not matter for "off"?)
         if(sx1278.setPreambleDetect(0x00 | 0x00 | 0x1F)!=0) {
-		MP3H_DBG(Serial.println("Setting PreambleDetect FAILED"));
+		HV2
+    _DBG(Serial.println("Setting PreambleDetect FAILED"));
 		return 1;
 	}
 #endif
@@ -117,7 +142,8 @@ int MP3H::setup(float frequency, int /*type*/)
 	// Packet config 1: fixed len, no mancecer, no crc, no address filter
 	// Packet config 2: packet mode, no home ctrl, no beackn, msb(packetlen)=0)
 	if(sx1278.setPacketConfig(0x08, 0x40)!=0) {
-		MP3H_DBG(Serial.println("Setting Packet config FAILED"));
+		HV2
+    _DBG(Serial.println("Setting Packet config FAILED"));
 		return 1;
 	}
 
@@ -131,21 +157,25 @@ int MP3H::setup(float frequency, int /*type*/)
 	delay(50);
         Serial.printf("after RX_MODE: AFC is %d\n", sx1278.getAFC());
 
-	memset((void *)&mp3hstate, 0, sizeof(mp3hstate));
-#if MP3H_DEBUG
-	MP3H_DBG(Serial.println("Setting SX1278 config for MP3H finished\n"); Serial.println());
+	memset((void *)&HV2
+state, 0, sizeof(HV2
+state));
+#if HV2_DEBUG
+	HV2
+_DBG(Serial.println("Setting SX1278 config for HV2
+ finished\n"); Serial.println());
 #endif
         return res;
 }
 
 
-MP3H::MP3H() {
+HV2::HV2() {
 }
 
-#define MP3H_FRAMELEN 49
+#define HV2_FRAMELEN 49
 
 // offsets from zilog
-// https://github.com/rs1729/RS/blob/master/demod/mod/mp3h1mod.c
+// https://github.com/rs1729/RS/blob/master/demod/mod/HV21mod.c
 #define OFS -3
 #define pos_CNT1        (OFS+ 3)  //   1 nibble (0x80..0x8F ?)
 #define pos_TIME        (OFS+ 4)  // 3*1 byte
@@ -162,7 +192,7 @@ MP3H::MP3H() {
 
 
 #define crc16poly 0xA001
-static bool checkMP3CRC(uint8_t *data)
+static bool checkHV2CRC(uint8_t *data)
 {
 	int start = pos_CNT1;
 	int len = 45;
@@ -178,7 +208,7 @@ static bool checkMP3CRC(uint8_t *data)
 	return rem == crcdat ? true : false;
 }
 
-void MP3H::printRaw(uint8_t *data, int len)
+void HV2::printRaw(uint8_t *data, int len)
 {
 	char buf[3];
 	int i;
@@ -252,12 +282,13 @@ static uint32_t getgpstime(uint8_t *buf) {
 	return buf[pos_TIME] * 60*60 + buf[pos_TIME+1] * 60 + buf[pos_TIME+2];
 }
 // unix time stamp from date and time info in frame. 
-static void getmp3htime(uint8_t *buf) {
+static void getHV2time(uint8_t *buf) {
 	//SondeInfo *si = sonde.si();
 	SondeData *si =&(sonde.si()->d);
 
 	// gpsdate from CFG frame 15 (0 if not yet received)
-	uint32_t gpsdate = mp3hstate.gpsdate;
+	uint32_t gpsdate = HV2
+state.gpsdate;
 	uint32_t gpstime = getgpstime(buf);
 	int tt = 0;
 	if(gpsdate) {
@@ -270,13 +301,15 @@ static void getmp3htime(uint8_t *buf) {
         	tt = (year-1970)*365 + (year-1969)/4; // days since 1970
         	if(month<=12) { tt += MON[month]; if((year%4)==0 && month>2) tt++; }
         	tt = (tt+day-1)*(60*60*24);
-		if(gpstime < mp3hstate.gpsdatetime) tt += 60*60*24; // time wrapped since last date tx
+		if(gpstime < HV2
+    state.gpsdatetime) tt += 60*60*24; // time wrapped since last date tx
 		Serial.printf("date: %04d-%02d-%02d t%d ", year, month, day, gpstime);
 	}
 	tt += gpstime;
 	si->time = tt;
 	si->vframe = tt - 315964800;
-	Serial.printf(" mp3h TIMESTAMP: %d\n", tt);
+	Serial.printf(" HV2
+ TIMESTAMP: %d\n", tt);
 }
 
 static uint8_t hex(uint32_t n) {
@@ -284,19 +317,25 @@ static uint8_t hex(uint32_t n) {
 	return (n<10) ? (n+'0') : (n-10+'A');
 }
 
-static void resetmp3h() {
-	mp3hstate.id1 = mp3hstate.id2 = 0;
-	mp3hstate.idok = 0;
-	mp3hstate.gpsdate = 0;
-	mp3hstate.dateok = 0;
+static void resetHV2() {
+	HV2
+state.id1 = HV2
+state.id2 = 0;
+	HV2
+state.idok = 0;
+	HV2
+state.gpsdate = 0;
+	HV2
+state.dateok = 0;
 }
 
 // ret: 1=frame ok; 2=frame with errors; 0=ignored frame (m10dop-alternativ)
-int MP3H::decodeframeMP3H(uint8_t *data) {
-	printRaw(data, MP3H_FRAMELEN);
+int HV2::decodeframeHV2(uint8_t *data) {
+	printRaw(data, HV2
+_FRAMELEN);
 
 	//
-	if(!checkMP3CRC(data)) {
+	if(!checkHV2CRC(data)) {
 		// maybe add repairing frames later...
 		return 2;
 	}
@@ -308,25 +347,42 @@ int MP3H::decodeframeMP3H(uint8_t *data) {
 	uint32_t cfg = u4(data+pos_CFG);
 	if(cnt==15) {
 		// date
-		mp3hstate.gpsdate = cfg;
-		mp3hstate.gpsdatetime = getgpstime(data);
-		mp3hstate.dateok = true;
+		HV2
+    state.gpsdate = cfg;
+		HV2
+    state.gpsdatetime = getgpstime(data);
+		HV2
+    state.dateok = true;
 	} else if(cnt==13) {
 		// id2
-		if(mp3hstate.id2 > 0 && mp3hstate.id2 != cfg) { resetmp3h(); }
-		mp3hstate.id2 = cfg;
-		mp3hstate.idok |= 2;
+		if(HV2
+    state.id2 > 0 && HV2
+    state.id2 != cfg) { resetHV2
+    (); }
+		HV2
+    state.id2 = cfg;
+		HV2
+    state.idok |= 2;
 	} else if(cnt==12) {
 		// id1
-		if(mp3hstate.id1 > 0 && mp3hstate.id1 != cfg) { resetmp3h(); }
-		mp3hstate.id1 = cfg;
-		mp3hstate.idok |= 1;
+		if(HV2
+    state.id1 > 0 && HV2
+    state.id1 != cfg) { resetHV2
+    (); }
+		HV2
+    state.id1 = cfg;
+		HV2
+    state.idok |= 1;
 	}
 	// get id
-	if((mp3hstate.idok&3) == 3) {
+	if((HV2
+state.idok&3) == 3) {
 		//...
-		//si->type = STYPE_MP3H;
-		uint32_t n = mp3hstate.id1*100000 + mp3hstate.id2;
+		//si->type = STYPE_HV2
+    ;
+		uint32_t n = HV2
+    state.id1*100000 + HV2
+    state.id2;
 		si->id[0] = 'M';
 		si->id[1] = 'R';
 		si->id[2] = 'Z';
@@ -337,14 +393,17 @@ int MP3H::decodeframeMP3H(uint8_t *data) {
 		si->id[7] = hex(n/0x10);
 		si->id[8] = hex(n);
 		si->id[9] = 0;
-		snprintf(si->ser, 12, "%u-%u", mp3hstate.id1, mp3hstate.id2);
+		snprintf(si->ser, 12, "%u-%u", HV2
+    state.id1, HV2
+    state.id2);
 		si->validID = true;
 	}
 
 	// position
 	calcgps(data);
 	// time
-	getmp3htime(data);
+	getHV2
+time(data);
 	return 1;
 #if 0
 	int repairstep = 16;
@@ -352,7 +411,8 @@ int MP3H::decodeframeMP3H(uint8_t *data) {
 	bool crcok;
 	// error correction, inspired by oe5dxl's sondeudp
 	do {
-		crcok = checkMP3Hcrc(M10_CRCPOS, data);
+		crcok = checkHV2
+    crc(M10_CRCPOS, data);
 		if(crcok || repairstep==0) break;
 		repl = 0;
 		for(int i=0; i<M10_CRCPOS; i++) {
@@ -439,7 +499,7 @@ static bool rxsearching=true;
 
 // search for
 // 0xBF3H (or inverse)
-void MP3H::processMP3Hdata(uint8_t dt)
+void HV2::processHV2data(uint8_t dt)
 {
 	for(int i=0; i<8; i++) {
 		uint8_t d = (dt&0x80)?1:0;
@@ -474,9 +534,11 @@ void MP3H::processMP3Hdata(uint8_t dt)
 			if(rxbitc == 0) { // got 8 data bit
 				dataptr[rxp++] = rxbyte&0xff; // (rxbyte>>1)&0xff;
 				//if(rxp==2 && dataptr[0]==0x45 && dataptr[1]==0x20) { isM20 = true; }
-				if(rxp>=MP3H_FRAMELEN) {
+				if(rxp>=HV2
+            _FRAMELEN) {
 					rxsearching = true;
-					haveNewFrame = decodeframeMP3H(dataptr);
+					haveNewFrame = decodeframeHV2
+                (dataptr);
 				}
 			}
 		}
@@ -484,14 +546,16 @@ void MP3H::processMP3Hdata(uint8_t dt)
 }
 
 #define MAXFRAMES 6
-int MP3H::receive() {
+int HV2::receive() {
 	// we wait for at most 6 frames or until a new seq nr.
-	uint8_t nFrames = MAXFRAMES;  // MP3H sends every frame  6x
+	uint8_t nFrames = MAXFRAMES;  // HV2
+ sends every frame  6x
 	static uint32_t lastFrame = 0;
 	uint8_t retval = RX_TIMEOUT;
 
 	unsigned long t0 = millis();
-	Serial.printf("MP3H::receive() start at %ld\n",t0);
+	Serial.printf("HV2
+::receive() start at %ld\n",t0);
    	while( millis() - t0 < 1100 + (retval!=RX_TIMEOUT)?1000:0 ) {
 		uint8_t value = sx1278.readRegister(REG_IRQ_FLAGS2);
 		if ( bitRead(value, 7) ) {
@@ -507,7 +571,8 @@ int MP3H::receive() {
 		if(bitRead(value, 6) == 0) { // while FIFO not empty
       			byte data = sx1278.readRegister(REG_FIFO);
 			Serial.printf("%02x:",data);
-      			processMP3Hdata(data);
+      			processHV2
+            data(data);
       			value = sx1278.readRegister(REG_IRQ_FLAGS2);
     		} else {
 			if(headerDetected) {
@@ -515,8 +580,10 @@ int MP3H::receive() {
 				headerDetected = 0;
 			}
     			if(haveNewFrame) {
-				Serial.printf("MP3H::receive(): new frame complete after %ldms\n", millis()-t0);
-				printRaw(dataptr, MP3H_FRAMELEN);
+				Serial.printf("HV2
+            ::receive(): new frame complete after %ldms\n", millis()-t0);
+				printRaw(dataptr, HV2
+            _FRAMELEN);
 				nFrames--;
 				// frame with CRC error: just skip and retry (unless we have waited for 6 frames alred)
 				if(haveNewFrame != 1) {
@@ -546,14 +613,17 @@ int MP3H::receive() {
         int32_t afc = sx1278.getAFC();
         int16_t rssi = sx1278.getRSSI();
         Serial.printf("receive: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
-	Serial.printf("MP3H::receive() timed out\n");
+	Serial.printf("HV2
+::receive() timed out\n");
     	return retval;
 }
 
-int MP3H::waitRXcomplete() {
+int HV2::waitRXcomplete() {
 	return 0;
 }
 
 
-MP3H mp3h = MP3H();
+HV2 HV2 = HV2();
 	
+
+
