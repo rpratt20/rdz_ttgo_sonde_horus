@@ -9,7 +9,7 @@
 #endif
 #include "DFM.h"
 #include "M10M20.h"
-#include "MP3H.h"
+#include "HV2.h"
 #include "SX1278FSK.h"
 #include "Display.h"
 #include <Wire.h>
@@ -24,8 +24,8 @@ const char *evstring[]={"NONE", "KEY1S", "KEY1D", "KEY1M", "KEY1L", "KEY2S", "KE
 const char *RXstr[]={"RX_OK", "RX_TIMEOUT", "RX_ERROR", "RX_UNKNOWN"};
 
 // Dependency to enum SondeType
-const char *sondeTypeStr[NSondeTypes] = { "DFM ", "RS41", "RS92", "Mxx ", "M10 ", "M20 ", "MP3H" };
-const char *sondeTypeLongStr[NSondeTypes] = { "DFM (all)", "RS41", "RS92", "M10/M20", "M10 ", "M20 ", "MP3-H1" };
+const char *sondeTypeStr[NSondeTypes] = { "DFM ", "RS41", "RS92", "Mxx ", "M10 ", "M20 ", "HV2" };
+const char *sondeTypeLongStr[NSondeTypes] = { "DFM (all)", "RS41", "RS92", "M10/M20", "M10 ", "M20 ", "HV2-H2" };
 const char sondeTypeChar[NSondeTypes] = { 'D', '4', 'R', 'M', 'M', '2', '3' };
 const char *manufacturer_string[]={"Graw", "Vaisala", "Vaisala", "Meteomodem", "Meteomodem", "Meteomodem", "Meteo-Radiy"};
 const char *DEFEPH="gssc.esa.int/gnss/data/daily/%1$04d/brdc/brdc%2$03d0.%3$02dn.gz";
@@ -244,8 +244,8 @@ void Sonde::defaultConfig() {
 	config.dfm.rxbw=10400;
 	config.m10m20.agcbw=20800;
 	config.m10m20.rxbw=12500;
-	config.mp3h.agcbw=12500;
-	config.mp3h.rxbw=12500;
+	config.hv2.agcbw=8000;
+	config.hv2.rxbw=8000;
 	config.udpfeed.active = 1;
 	config.udpfeed.type = 0;
 	strcpy(config.udpfeed.host, "192.168.42.20");
@@ -584,8 +584,8 @@ rxloop:
 	case STYPE_DFM:
 		dfm.waitRXcomplete();
 		break;
-	case STYPE_MP3H:
-		mp3h.waitRXcomplete();
+	case STYPE_HV2:
+		hv2.waitRXcomplete();
 		break;
 	}
 	memmove(sonde.si()->rxStat+1, sonde.si()->rxStat, 17);
