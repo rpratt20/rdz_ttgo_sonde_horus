@@ -63,7 +63,7 @@ extern const char *RXstr[];
 // 01000001 => goto sonde +1
 
 #define NSondeTypes 7
-enum SondeType { STYPE_DFM, STYPE_RS41, STYPE_RS92, STYPE_M10M20, STYPE_M10, STYPE_M20, STYPE_MP3H };
+enum SondeType { STYPE_DFM, STYPE_RS41, STYPE_RS92, STYPE_M10M20, STYPE_M10, STYPE_M20, STYPE_HV2 };
 extern const char *sondeTypeStr[NSondeTypes];
 extern const char *sondeTypeLongStr[NSondeTypes];
 extern const char sondeTypeChar[NSondeTypes];
@@ -176,7 +176,7 @@ struct st_m10m20config {
 	int agcbw;
 	int rxbw;
 };
-struct st_mp3hconfig {
+struct st_hv2config {
 	int agcbw;
 	int rxbw;
 };
