@@ -482,8 +482,8 @@ void Sonde::receive() {
 	case STYPE_DFM:
 		res = dfm.receive();
 		break;
-	case STYPE_MP3H:
-		res = mp3h.receive();
+	case STYPE_HV2:
+		res = hv2.receive();
 		break;
 	}
 
