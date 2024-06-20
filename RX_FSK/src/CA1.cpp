@@ -95,7 +95,7 @@ SetupCfg, sonde.config.CA1
 	sx1278.setFSK();
 	if(sx1278.setBitrate(9600)!=0) {
 		HV2
-    _DBG(Serial.println("Setting bitrate 2400bit/s FAILED"));
+    _DBG(Serial.println("Setting bitrate 9600bit/s FAILED"));
 		return 1;
 	}
 	HV2
@@ -126,7 +126,7 @@ _DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
 	}
 	// version 1, working with continuous RX
 	const char *SYNC="\xAB\xCD\xEF\x12";
-	if(sx1278.setSyncConf(0x70, 1, (const uint8_t *)SYNC)!=0) {
+	if(sx1278.setSyncConf(0x70, 4, (const uint8_t *)SYNC)!=0) {
 		CA1
     _DBG(Serial.println("Setting SYNC Config FAILED"));
 		return 1;
