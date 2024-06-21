@@ -74,7 +74,7 @@ boolean connected = false;
 WiFiUDP udp;
 WiFiClient client;
 
-/* Sonde.h: enum SondeType { STYPE_DFM,, STYPE_RS41, STYPE_RS92, STYPE_M10M20, STYPE_M10, STYPE_M20, STYPE_MP3H }; */
+/* Sonde.h: enum SondeType { STYPE_DFM,, STYPE_RS41, STYPE_RS92, STYPE_M10M20, STYPE_M10, STYPE_M20, STYPE_CA1 }; */
 const char *sondeTypeStrSH[NSondeTypes] = { "DFM", "RS41", "RS92", "Mxx"/*never sent*/, "M10", "M20", "MRZ" };
 
 
@@ -261,7 +261,7 @@ void setupChannelList() {
       type = STYPE_M10M20;
     }
     else if (space[1] == '3') {
-      type = STYPE_MP3H;
+      type = STYPE_CA1;
     }
     else continue;
     int active = space[3] == '+' ? 1 : 0;
@@ -510,7 +510,7 @@ void addSondeStatus(char *ptr, int i)
   strcat(ptr, "<table class=\"stat\">");
   sprintf(ptr + strlen(ptr), "<tr><td id=\"sfreq\">%3.3f MHz, Type: %s</td><tr><td>ID: %s", s->freq, sondeTypeLongStr[sonde.realType(s)],
           s->d.validID ? s->d.id : "<?""?>");
-  if (s->d.validID && (TYPE_IS_DFM(s->type) || TYPE_IS_METEO(s->type) || s->type == STYPE_MP3H) ) {
+  if (s->d.validID && (TYPE_IS_DFM(s->type) || TYPE_IS_METEO(s->type) || s->type == STYPE_CA1) ) {
     sprintf(ptr + strlen(ptr), " (ser: %s)", s->d.ser);
   }
   sprintf(ptr + strlen(ptr), "</td></tr><tr><td>QTH: %.6f,%.6f h=%.0fm</td></tr>\n", s->d.lat, s->d.lon, s->d.alt);
@@ -636,8 +636,8 @@ struct st_configitems config_list[] = {
   {"dfm.rxbw", 0, &sonde.config.dfm.rxbw},
   {"m10m20.agcbw", 0, &sonde.config.m10m20.agcbw},
   {"m10m20.rxbw", 0, &sonde.config.m10m20.rxbw},
-  {"mp3h.agcbw", 0, &sonde.config.mp3h.agcbw},
-  {"mp3h.rxbw", 0, &sonde.config.mp3h.rxbw},
+  {"ca1.agcbw", 0, &sonde.config.ca1.agcbw},
+  {"ca1.rxbw", 0, &sonde.config.ca1.rxbw},
   {"ephftp", 79, &sonde.config.ephftp},
   /* APRS settings */
   {"call", 9, sonde.config.call},
