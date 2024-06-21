@@ -547,16 +547,37 @@ void CA1::processCA1data(uint8_t dt)
 	}
 }
 
+/*  CATS receive code 
+uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
+cats_packet_t* pkt;
+
+cats_packet_prepare(&pkt);
+if(!cats_packet_from_buf(pkt, buf, bufLen)) {
+    fprintf(stderr, cats_error_str);
+    return -1; // Decode failed
+}
+
+char comment[1024];
+char callsign[255];
+uint8_t ssid;
+uint16_t icon;
+cats_packet_get_identification(pkt, callsign, &ssid, &icon);
+cats_packet_get_comment(pkt, comment);
+
+free(buf);
+free(pkt);
+*/
+/*  COMMENT OUT OLD RECEIVE UNTIL WORKING	
 #define MAXFRAMES 6
 int CA1::receive() {
 	// we wait for at most 6 frames or until a new seq nr.
-	uint8_t nFrames = MAXFRAMES;  // HV2
+	uint8_t nFrames = MAXFRAMES;  // CA1
  sends every frame  6x
 	static uint32_t lastFrame = 0;
 	uint8_t retval = RX_TIMEOUT;
 
 	unsigned long t0 = millis();
-	Serial.printf("HV2
+	Serial.printf("CA1
 ::receive() start at %ld\n",t0);
    	while( millis() - t0 < 1100 + (retval!=RX_TIMEOUT)?1000:0 ) {
 		uint8_t value = sx1278.readRegister(REG_IRQ_FLAGS2);
@@ -619,7 +640,7 @@ int CA1::receive() {
 ::receive() timed out\n");
     	return retval;
 }
-
+*/     /* END OF ORIGINAL RECEIVE
 int CA1::waitRXcomplete() {
 	return 0;
 }
