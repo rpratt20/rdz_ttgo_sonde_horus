@@ -19,7 +19,7 @@ extern uint8_t debug;
 //      For DFM: In +- 1s, some but not all DAT-subframes 1,2,3,4,5,6,7,8 received
 //      For RS92 ??? unclear
 //      For M10/M20 its always all or nothing, no PARTIAL data 
-//      For MP3H its alway all or nothing, no PARTIAL data
+//      For CA1 its alway all or nothing, no PARTIAL data NOT SURE
 // RX_OK: header and all data ok
 enum RxResult { RX_OK, RX_TIMEOUT, RX_ERROR, RX_UNKNOWN, RX_NOPOS };
 #define RX_UPDATERSSI 0xFFFE
@@ -63,7 +63,7 @@ extern const char *RXstr[];
 // 01000001 => goto sonde +1
 
 #define NSondeTypes 7
-enum SondeType { STYPE_DFM, STYPE_RS41, STYPE_RS92, STYPE_M10M20, STYPE_M10, STYPE_M20, STYPE_HV2 };
+enum SondeType { STYPE_DFM, STYPE_RS41, STYPE_RS92, STYPE_M10M20, STYPE_M10, STYPE_M20, STYPE_CA1 };
 extern const char *sondeTypeStr[NSondeTypes];
 extern const char *sondeTypeLongStr[NSondeTypes];
 extern const char sondeTypeChar[NSondeTypes];
@@ -176,7 +176,7 @@ struct st_m10m20config {
 	int agcbw;
 	int rxbw;
 };
-struct st_hv2config {
+struct st_ca1config {
 	int agcbw;
 	int rxbw;
 };
@@ -281,7 +281,7 @@ typedef struct st_rdzconfig {
 	struct st_rs92config rs92;
 	struct st_dfmconfig dfm;
 	struct st_m10m20config m10m20;
-	struct st_hv2config hv2;
+	struct st_ca1config ca1;
 	char ephftp[80];
 	// data feed configuration
 	// for now, one feed for each type is enough, but might get extended to more?
