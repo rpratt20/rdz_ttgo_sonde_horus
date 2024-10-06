@@ -1,4 +1,4 @@
-""" /*
+/*
  * M10M20.h
  * Functions for decoding Meteomodem M10M20 sondes with SX127x chips
  * Copyright (C) 2019 Hansi Reiser, dl9rdz
@@ -64,4 +64,3 @@ public:
 extern M10M20 m10m20;
 
 #endif
-"""

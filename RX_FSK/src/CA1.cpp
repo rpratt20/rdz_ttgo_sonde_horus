@@ -7,6 +7,16 @@
 #include "Sonde.h"
 #include <SPIFFS.h>
 
+#include "../libCATS/include/cats/interleaver.h"
+#include "../libCATS/include/cats/ldpc.h"
+#include "../libCATS/include/cats/ldpc_matrices.h"
+#include "../libCATS/include/cats/whitener.h"
+#include "../libCATS/include/cats/radio_iface.h"
+#include "../libCATS/include/cats/whisker.h"
+#include "../libCATS/include/cats/packet.h"
+#include "../libCATS/include/cats/util.h"
+#include "../libCATS/include/cats/error.h"
+
 #define CA1_DEBUG 1
 
 #if CA1_DEBUG
@@ -21,7 +31,7 @@ static struct st_CA1state {
 	uint32_t gpsdate;
 	uint32_t gpsdatetime;
 	bool dateok;
-} HV2state;
+} ca1state;
 
 static byte data1[512];
 static byte *dataptr=data1;
@@ -46,47 +56,33 @@ decoderSetupCfg CA1SetupCfg = {
 
 int CA1::setup(float frequency, int /*type*/) 
 {
-	CA1
-_DBG(Serial.println("Setup sx1278 for CA1
- sonde"));;
+	CA1_DBG(Serial.println("Setup sx1278 for CA1 sonde"));;
 	if(sx1278.ON()!=0) {
-		CA1
-    _DBG(Serial.println("Setting SX1278 power on FAILED"));
+		CA1_DBG(Serial.println("Setting SX1278 power on FAILED"));
 		return 1;
 	}
 	// setFSK: switches to FSK standby mode
 	if(sx1278.setFSK()!=0) {
-		CA1
-    _DBG(Serial.println("Setting FSK mode FAILED"));
+		CA1_DBG(Serial.println("Setting FSK mode FAILED"));
 		return 1;
 	}
-        Serial.print("CA1
-    : setting RX frequency to ");
+        Serial.print("CA1: setting RX frequency to ");
         Serial.println(frequency);
         int res = sx1278.setFrequency(frequency);
 	// Test: maybe fix issue after spectrum display?
 	sx1278.writeRegister(REG_PLL_HOP, 0);
 
-        if(sx1278.setAFCBandwidth(sonde.config.CA1
-    .agcbw)!=0) {
-                CA1
-            _DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.CA1
-            .agcbw));
+        if(sx1278.setAFCBandwidth(sonde.config.ca1.agcbw)!=0) {
+                CA1_DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.ca1.agcbw));
                 return 1;
         }
-        if(sx1278.setRxBandwidth(sonde.config.CA1
-    .rxbw)!=0) {
-                CA1
-            _DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.CA1
-            .rxbw));
+        if(sx1278.setRxBandwidth(sonde.config.ca1.rxbw)!=0) {
+                CA1_DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.ca1.rxbw));
                 return 1;
         }
 
 //// Step 2: Real reception
-	if(DecoderBase::setup(CA1
-SetupCfg, sonde.config.CA1
-.agcbw, sonde.config.CA1
-.rxbw)!=0) {
+	if(DecoderBase::setup(CA1SetupCfg, sonde.config.ca1.agcbw, sonde.config.ca1.rxbw)!=0) {
 		return 1;
 	}
 #if 0
@@ -94,22 +90,16 @@ SetupCfg, sonde.config.CA1
 	// FSK standby mode, seems like otherweise baudrate cannot be changed?
 	sx1278.setFSK();
 	if(sx1278.setBitrate(9600)!=0) {
-		HV2
-    _DBG(Serial.println("Setting bitrate 9600bit/s FAILED"));
+		CA1_DBG(Serial.println("Setting bitrate 9600bit/s FAILED"));
 		return 1;
 	}
-	HV2
-_DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
+	CA_DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
 	// Probably not necessary, as this was set before
-        if(sx1278.setAFCBandwidth(sonde.config.CA1
-    .agcbw)!=0) {
-               CA1
-            _DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.CA1
-            .agcbw));
+        if(sx1278.setAFCBandwidth(sonde.config.CA1.agcbw)!=0) {
+               CA1_DBG(Serial.printf("Setting AFC bandwidth %d Hz FAILED", sonde.config.CA1.agcbw));
                 return 1;
         }
-        if(sx1278.setRxBandwidth(sonde.config.CA1
-    .rxbw)!=0) {
+        if(sx1278.setRxBandwidth(sonde.config.CA1.rxbw)!=0) {
                 CA1
             _DBG(Serial.printf("Setting RX bandwidth to %d Hz FAILED", sonde.config.CA1
             .rxbw));
@@ -120,21 +110,18 @@ _DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
 	//if(sx1278.setRxConf(0x1E)!=0) {
 	// Disable auto-AFC, auto-AGC, RX Trigger by preamble
 	if(sx1278.setRxConf(0x00)!=0) {
-		HV2
-    _DBG(Serial.println("Setting RX Config FAILED"));
+		CA1_DBG(Serial.println("Setting RX Config FAILED"));
 		return 1;
 	}
 	// version 1, working with continuous RX
 	const char *SYNC="\xAB\xCD\xEF\x12";
 	if(sx1278.setSyncConf(0x70, 4, (const uint8_t *)SYNC)!=0) {
-		CA1
-    _DBG(Serial.println("Setting SYNC Config FAILED"));
+		CA1_DBG(Serial.println("Setting SYNC Config FAILED"));
 		return 1;
 	}
         // Preamble detection off (+ size 1 byte, maximum tolerance; should not matter for "off"?)
         if(sx1278.setPreambleDetect(0x55 | 0x55 | 0x55 | 0x55)!=0) {
-		CA1
-    _DBG(Serial.println("Setting PreambleDetect FAILED"));
+		CA1_DBG(Serial.println("Setting PreambleDetect FAILED"));
 		return 1;
 	}
 #endif
@@ -142,13 +129,12 @@ _DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
 	// Packet config 1: fixed len, no mancecer, no crc, no address filter
 	// Packet config 2: packet mode, no home ctrl, no beackn, msb(packetlen)=0)
 	if(sx1278.setPacketConfig(0x08, 0x40)!=0) {
-		CA1
-    _DBG(Serial.println("Setting Packet config FAILED"));
+		CA1_DBG(Serial.println("Setting Packet config FAILED"));
 		return 1;
 	}
 
         // enable RX
-        sx1278.setPayloadLength(0);  // infinite for now...
+        sx1278.setPayloadLength(8191);  // mp3h infinite for now used 0 for this
         //sx1278.setRxConf(0x20);
 	uint16_t afc = sx1278.getRawAFC();
         sx1278.writeRegister(REG_OP_MODE, FSK_RX_MODE);
@@ -157,13 +143,9 @@ _DBG(Serial.printf("Exact bitrate is %f\n", sx1278.getBitrate()));
 	delay(50);
         Serial.printf("after RX_MODE: AFC is %d\n", sx1278.getAFC());
 
-	memset((void *)&CA1
-state, 0, sizeof(HV2
-state));
+	memset((void *)&ca1state, 0, sizeof(ca1state));
 #if CA1_DEBUG
-	CA1
-_DBG(Serial.println("Setting SX1278 config for CA1
- finished\n"); Serial.println());
+	CA1_DBG(Serial.println("Setting SX1278 config for CA1 finished\n"); Serial.println());
 #endif
         return res;
 }
@@ -178,6 +160,7 @@ CA1::CA1() {
 
 // offsets from zilog
 // https://github.com/rs1729/RS/blob/master/demod/mod/CA11mod.c
+// these will need figuring to match CATS
 #define OFS -3
 #define pos_CNT1        (OFS+ 3)  //   1 nibble (0x80..0x8F ?)
 #define pos_TIME        (OFS+ 4)  // 3*1 byte
@@ -284,13 +267,12 @@ static uint32_t getgpstime(uint8_t *buf) {
 	return buf[pos_TIME] * 60*60 + buf[pos_TIME+1] * 60 + buf[pos_TIME+2];
 }
 // unix time stamp from date and time info in frame. 
-static void getHV2time(uint8_t *buf) {
+static void getca1time(uint8_t *buf) {
 	//SondeInfo *si = sonde.si();
 	SondeData *si =&(sonde.si()->d);
 
 	// gpsdate from CFG frame 15 (0 if not yet received)
-	uint32_t gpsdate = HV2
-state.gpsdate;
+	uint32_t gpsdate = ca1state.gpsdate;
 	uint32_t gpstime = getgpstime(buf);
 	int tt = 0;
 	if(gpsdate) {
@@ -303,15 +285,13 @@ state.gpsdate;
         	tt = (year-1970)*365 + (year-1969)/4; // days since 1970
         	if(month<=12) { tt += MON[month]; if((year%4)==0 && month>2) tt++; }
         	tt = (tt+day-1)*(60*60*24);
-		if(gpstime < HV2
-    state.gpsdatetime) tt += 60*60*24; // time wrapped since last date tx
+		if(gpstime < ca1state.gpsdatetime) tt += 60*60*24; // time wrapped since last date tx
 		Serial.printf("date: %04d-%02d-%02d t%d ", year, month, day, gpstime);
 	}
 	tt += gpstime;
 	si->time = tt;
 	si->vframe = tt - 315964800;
-	Serial.printf(" HV2
- TIMESTAMP: %d\n", tt);
+	Serial.printf(" ca1 TIMESTAMP: %d\n", tt);
 }
 
 static uint8_t hex(uint32_t n) {
@@ -319,22 +299,16 @@ static uint8_t hex(uint32_t n) {
 	return (n<10) ? (n+'0') : (n-10+'A');
 }
 
-static void resetCA1() {
-	CA1
-state.id1 = CA1
-state.id2 = 0;
-	CA1
-state.idok = 0;
-	CA1
-state.gpsdate = 0;
-	CA1
-state.dateok = 0;
+static void resetca1() {
+	ca1state.id1 = ca1state.id2 = 0;
+	ca1state.idok = 0;
+	ca1state.gpsdate = 0;
+	ca1state.dateok = 0;
 }
 
 // ret: 1=frame ok; 2=frame with errors; 0=ignored frame (m10dop-alternativ)
 int CA1::decodeframeCA1(uint8_t *data) {
-	printRaw(data,CA1
-_FRAMELEN);
+	printRaw(data, CA1_FRAMELEN);
 
 	//
 	if(!checkCA1CRC(data)) {
@@ -349,42 +323,27 @@ _FRAMELEN);
 	uint32_t cfg = u4(data+pos_CFG);
 	if(cnt==15) {
 		// date
-		CA1
-    state.gpsdate = cfg;
-		CA1
-    state.gpsdatetime = getgpstime(data);
-		CA1
-    state.dateok = true;
+		ca1state.gpsdate = cfg;
+		ca1state.gpsdatetime = getgpstime(data);
+		ca1state.dateok = true;
 	} else if(cnt==13) {
 		// id2
-		if(CA1
-    state.id2 > 0 && CA1
-    state.id2 != cfg) { resetCA1
+		if(ca1state.id2 > 0 && ca1state.id2 != cfg) { resetca1
     (); }
-		CA1
-    state.id2 = cfg;
-		CA1
-    state.idok |= 2;
+		ca1state.id2 = cfg;
+		ca1state.idok |= 2;
 	} else if(cnt==12) {
 		// id1
-		if(HV2
-    state.id1 > 0 && HV2
-    state.id1 != cfg) { resetCA1
-    (); }
-		CA1
-    state.id1 = cfg;
-		CA1
-    state.idok |= 1;
+		if(ca1state.id1 > 0 && ca1state.id1 != cfg) { resetca1();
+		 }
+		ca1state.id1 = cfg;
+		ca1state.idok |= 1;
 	}
 	// get id
-	if((CA1
-state.idok&3) == 3) {
+	if((ca1state.idok&3) == 3) {
 		//...
-		//si->type = STYPE_CA1
-    ;
-		uint32_t n = CA1
-    state.id1*100000 + CA1
-    state.id2;
+		//si->type = STYPE_CA1;
+		uint32_t n = ca1state.id1*100000 + ca1state.id2;
 		si->id[0] = 'M';
 		si->id[1] = 'R';
 		si->id[2] = 'Z';
@@ -395,17 +354,14 @@ state.idok&3) == 3) {
 		si->id[7] = hex(n/0x10);
 		si->id[8] = hex(n);
 		si->id[9] = 0;
-		snprintf(si->ser, 12, "%u-%u", CA1
-    state.id1, CA1
-    state.id2);
+		snprintf(si->ser, 12, "%u-%u", ca1state.id1, ca1state.id2);
 		si->validID = true;
 	}
 
 	// position
 	calcgps(data);
 	// time
-	getCA1
-time(data);
+	getca1time(data);
 	return 1;
 #if 0
 	int repairstep = 16;
@@ -413,8 +369,7 @@ time(data);
 	bool crcok;
 	// error correction, inspired by oe5dxl's sondeudp
 	do {
-		crcok = checkHV2
-    crc(M10_CRCPOS, data);
+		crcok = checkCA1crc(M10_CRCPOS, data);
 		if(crcok || repairstep==0) break;
 		repl = 0;
 		for(int i=0; i<M10_CRCPOS; i++) {
@@ -536,18 +491,17 @@ void CA1::processCA1data(uint8_t dt)
 			if(rxbitc == 0) { // got 8 data bit
 				dataptr[rxp++] = rxbyte&0xff; // (rxbyte>>1)&0xff;
 				//if(rxp==2 && dataptr[0]==0x45 && dataptr[1]==0x20) { isM20 = true; }
-				if(rxp>=HV2
-            _FRAMELEN) {
+				if(rxp>=CA1_FRAMELEN) {
 					rxsearching = true;
-					haveNewFrame = decodeframeHV2
-                (dataptr);
+					haveNewFrame = decodeframeCA1(dataptr);
 				}
 			}
 		}
 	}
 }
 
-/*  CATS receive code 
+/* ______________CATS receive code ______________________ */ 
+// CATS needs declarations, structures, types, etc
 uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
 cats_packet_t* pkt;
 
@@ -563,22 +517,23 @@ uint8_t ssid;
 uint16_t icon;
 cats_packet_get_identification(pkt, callsign, &ssid, &icon);
 cats_packet_get_comment(pkt, comment);
+cats_packet_get_gps(pkt, out);
+cats_packet_get_timestamp(pkt);
 
 free(buf);
 free(pkt);
-*/
+/* __________ END CATS ___________________*/
+
 /*  COMMENT OUT OLD RECEIVE UNTIL WORKING	
 #define MAXFRAMES 6
 int CA1::receive() {
 	// we wait for at most 6 frames or until a new seq nr.
-	uint8_t nFrames = MAXFRAMES;  // CA1
- sends every frame  6x
+	uint8_t nFrames = MAXFRAMES;  // CA1 sends every frame  6x
 	static uint32_t lastFrame = 0;
 	uint8_t retval = RX_TIMEOUT;
 
 	unsigned long t0 = millis();
-	Serial.printf("CA1
-::receive() start at %ld\n",t0);
+	Serial.printf("CA1::receive() start at %ld\n",t0);
    	while( millis() - t0 < 1100 + (retval!=RX_TIMEOUT)?1000:0 ) {
 		uint8_t value = sx1278.readRegister(REG_IRQ_FLAGS2);
 		if ( bitRead(value, 7) ) {
@@ -594,8 +549,7 @@ int CA1::receive() {
 		if(bitRead(value, 6) == 0) { // while FIFO not empty
       			byte data = sx1278.readRegister(REG_FIFO);
 			Serial.printf("%02x:",data);
-      			processCA1
-            data(data);
+      			processCA1data(data);
       			value = sx1278.readRegister(REG_IRQ_FLAGS2);
     		} else {
 			if(headerDetected) {
@@ -603,10 +557,8 @@ int CA1::receive() {
 				headerDetected = 0;
 			}
     			if(haveNewFrame) {
-				Serial.printf("CA1
-            ::receive(): new frame complete after %ldms\n", millis()-t0);
-				printRaw(dataptr, CA1
-            _FRAMELEN);
+				Serial.printf("CA1::receive(): new frame complete after %ldms\n", millis()-t0);
+				printRaw(dataptr, CA1_FRAMELEN);
 				nFrames--;
 				// frame with CRC error: just skip and retry (unless we have waited for 6 frames alred)
 				if(haveNewFrame != 1) {
@@ -636,17 +588,20 @@ int CA1::receive() {
         int32_t afc = sx1278.getAFC();
         int16_t rssi = sx1278.getRSSI();
         Serial.printf("receive: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
-	Serial.printf("CA1
-::receive() timed out\n");
+	Serial.printf("CA1::receive() timed out\n");
     	return retval;
 }
-*/     /* END OF ORIGINAL RECEIVE
+*/     
+
+/* END OF ORIGINAL RECEIVE*/
+
+
 int CA1::waitRXcomplete() {
 	return 0;
 }
 
 
-CA1 CA1 = CA1();
+CA1 ca1 = CA1();
 	
 
 

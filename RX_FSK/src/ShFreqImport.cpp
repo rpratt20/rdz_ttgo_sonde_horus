@@ -33,7 +33,7 @@ int ShFreqImport::stringToStype(const char *type) {
     if(type[1]=='1') return STYPE_M10M20;
     if(type[1]=='2') return STYPE_M10M20;
     if(type[0]=='D') return STYPE_DFM;
-    if(type[2]=='3') return STYPE_HV2;  // TODO: check if '3' is correct
+    if(type[2]=='3') return STYPE_CA1;  // TODO: check if '3' is correct
     return -1;  // iMet is not supported
 }
 

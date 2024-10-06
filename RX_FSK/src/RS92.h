@@ -1,4 +1,4 @@
-""" /*
+/*
  * RS92.h
  * Functions for decoding RS92 sondes with SX127x chips
  * Copyright (C) 2019 Hansi Reiser, dl9rdz
@@ -90,4 +90,3 @@ public:
 extern RS92 rs92;
 
 #endif
-"""

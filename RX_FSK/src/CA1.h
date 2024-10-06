@@ -22,16 +22,16 @@ class CA1 : public DecoderBase
 {
 private:
 	void printRaw(uint8_t *data, int len);
-	void processHV2data(uint8_t data);
-        int decodeframeCA1(uint8_t *data);
+	void processCA1data(uint8_t data);
+    int decodeframeCA1(uint8_t *data);
 public:
-	HV2();
+	CA1();
 	int setup(float frequency, int type = 0);
 	int receive();
 	int waitRXcomplete();
 };
 
-extern CA1 CA1;
+extern CA1 ca1;
 
 #endif
 
