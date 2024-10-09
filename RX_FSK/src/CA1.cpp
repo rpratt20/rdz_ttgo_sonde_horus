@@ -156,6 +156,7 @@ int CA1::setup(float frequency, int /*type*/)
 CA1::CA1() {
 }
 
+// This needs change to? offsets need remap
 #define CA1_FRAMELEN 49
 
 // offsets from zilog
@@ -344,9 +345,9 @@ int CA1::decodeframeCA1(uint8_t *data) {
 		//...
 		//si->type = STYPE_CA1;
 		uint32_t n = ca1state.id1*100000 + ca1state.id2;
-		si->id[0] = 'M';
-		si->id[1] = 'R';
-		si->id[2] = 'Z';
+		si->id[0] = 'C';
+		si->id[1] = 'A';
+		si->id[2] = '1';
 		si->id[3] = hex(n/0x100000);
 		si->id[4] = hex(n/0x10000);
 		si->id[5] = hex(n/0x1000);
@@ -500,8 +501,10 @@ void CA1::processCA1data(uint8_t dt)
 	}
 }
 
-/* ______________CATS receive code ______________________ */ 
+/* ______________CATS processsing code ______________________ */ 
 // CATS needs declarations, structures, types, etc
+//need to match library data structure to rdz naming of data
+
 uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
 cats_packet_t* pkt;
 
@@ -524,10 +527,10 @@ free(buf);
 free(pkt);
 /* __________ END CATS ___________________*/
 
-/*  COMMENT OUT OLD RECEIVE UNTIL WORKING	
-#define MAXFRAMES 6
+/*  COMMENT OUT portions of OLD RECEIVE UNTIL WORKING */	
+#define MAXFRAMES 32
 int CA1::receive() {
-	// we wait for at most 6 frames or until a new seq nr.
+	// we wait for at most 8191 bytes or until a new packet.
 	uint8_t nFrames = MAXFRAMES;  // CA1 sends every frame  6x
 	static uint32_t lastFrame = 0;
 	uint8_t retval = RX_TIMEOUT;
@@ -591,7 +594,7 @@ int CA1::receive() {
 	Serial.printf("CA1::receive() timed out\n");
     	return retval;
 }
-*/     
+
 
 /* END OF ORIGINAL RECEIVE*/
 
