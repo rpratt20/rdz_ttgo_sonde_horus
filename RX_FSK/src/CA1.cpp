@@ -159,9 +159,9 @@ CA1::CA1() {
 // This needs change to? offsets need remap. I think max packet length should be 8191 bytes.
 #define CA1_FRAMELEN 49
 
-// offsets from zilog
+// offsets from zilog THESE ARE FOR OLD CODE
 // https://github.com/rs1729/RS/blob/master/demod/mod/CA11mod.c
-// these will need figuring to match CATS
+// THESE will need figuring to match CATS
 #define OFS -3
 #define pos_CNT1        (OFS+ 3)  //   1 nibble (0x80..0x8F ?)
 #define pos_TIME        (OFS+ 4)  // 3*1 byte
@@ -178,7 +178,7 @@ CA1::CA1() {
 
 /* below is partial remap to gps whisker
 
-#define OFS -3                    // 3 bytes for 0x02 type and 14 length definition
+#define OFS - 3                       // 3 bytes for 0x02 type and 14 length definition
 #define pos_GPSecefX        (OFS+ 2)  //   4 byte latitude
 #define pos_GPSecefY        (OFS+ 6)  //   4 byte longitude
 #define pos_GPSecefZ        (OFS+10)  //   2 byte altitude
@@ -465,7 +465,7 @@ int CA1::decodeframeCA1(uint8_t *data) {
 static uint32_t rxdata;
 static bool rxsearching=true;
 
-// search for
+// search for  THIS NEEDS CHANGE
 // 0xBF3H (or inverse)
 void CA1::processCA1data(uint8_t dt)
 {
@@ -480,6 +480,7 @@ void CA1::processCA1data(uint8_t dt)
 			// "bit2" ==> 01 or 10 => 1, otherweise => 0
 			// rxbyte = rxbyte ^ d;
 		}
+		// THIS PROBABLY NEEDS CHANGE
 		// BF3H => 1011 1111 0011 0101 => 10011010 10101010 01011010 01100110 => 9AAA5A66 // 6555a599
 		if(rxsearching) {
 			if( rxdata == 0x9AAA5A66 || rxdata == 0x6555a599 ) {
