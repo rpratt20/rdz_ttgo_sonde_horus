@@ -156,7 +156,7 @@ int CA1::setup(float frequency, int /*type*/)
 CA1::CA1() {
 }
 
-// This needs change to? offsets need remap
+// This needs change to? offsets need remap. I think max packet length should be 8191 bytes.
 #define CA1_FRAMELEN 49
 
 // offsets from zilog
@@ -176,6 +176,16 @@ CA1::CA1() {
 #define pos_CFG         (OFS+44)  // 2/4 byte
 #define pos_CRC         (OFS+48)  //   2 byte
 
+/* below is partial remap to gps whisker
+
+#define OFS -3                    // 3 bytes for 0x02 type and 14 length definition
+#define pos_GPSecefX        (OFS+ 2)  //   4 byte latitude
+#define pos_GPSecefY        (OFS+ 6)  //   4 byte longitude
+#define pos_GPSecefZ        (OFS+10)  //   2 byte altitude
+#define pos_        (OFS+12)  //   1 byte location error
+#define pos_        (OFS+13)  //   1 byte heading
+#define pos_        (OFS+14)  //   2 byte speed
+*/
 
 #define crc16poly 0xA001
 static bool checkCA1CRC(uint8_t *data)
