@@ -178,7 +178,7 @@ CA1::CA1() {
 
 /* below is partial remap to gps whisker
 
-#define OFS - 3                       // 3 bytes for 0x02 type and 14 length definition
+#define OFS -3                       // 3 bytes for 0x02 type and 14 length definition
 #define pos_GPSecefX        (OFS+ 2)  //   4 byte latitude
 #define pos_GPSecefY        (OFS+ 6)  //   4 byte longitude
 #define pos_GPSecefZ        (OFS+10)  //   2 byte altitude
@@ -391,6 +391,9 @@ int CA1::decodeframeCA1(uint8_t *data) {
 		}
 		repairstep >>= 1;
 	} while(true);
+
+    // NEXT LINE M10_CRCPOS IS INCORRECT FOR CATS. CRC IS LAST 2 BYTES OF PACKET.
+
 	if(crcok) {
 		for(int i=0; i<M10_CRCPOS; i++) {
 			if(fixbytes[i]==data[i] &&fixcnt[i]<255) fixcnt[i]++;
@@ -399,7 +402,7 @@ int CA1::decodeframeCA1(uint8_t *data) {
 	}
 	Serial.println(crcok?"CRC OK":"CRC NOT OK");
 	Serial.printf(" repair: %d/%d\n", repl, repairstep);
-
+    //THIS IF AND DATA BELOW IS INCORRECT FOR CATS
 	if(data[1]==0x9F && data[2]==0x20) {
 		Serial.println("Decoding...");
 		// Its a M10
@@ -482,6 +485,7 @@ void CA1::processCA1data(uint8_t dt)
 		}
 		// THIS PROBABLY NEEDS CHANGE
 		// BF3H => 1011 1111 0011 0101 => 10011010 10101010 01011010 01100110 => 9AAA5A66 // 6555a599
+		// THIS IF NEEDS CHANGED VALUES
 		if(rxsearching) {
 			if( rxdata == 0x9AAA5A66 || rxdata == 0x6555a599 ) {
 				rxsearching = false;
@@ -502,6 +506,7 @@ void CA1::processCA1data(uint8_t dt)
 			rxbitc = (rxbitc+1)%16; // 16;
 			if(rxbitc == 0) { // got 8 data bit
 				dataptr[rxp++] = rxbyte&0xff; // (rxbyte>>1)&0xff;
+				// WHAT IDENTIFIES A CATS? I THINK NOT NEEDED BECAUSE PREAMBLE AND SYNCH ARE SPECIFIED
 				//if(rxp==2 && dataptr[0]==0x45 && dataptr[1]==0x20) { isM20 = true; }
 				if(rxp>=CA1_FRAMELEN) {
 					rxsearching = true;
@@ -538,11 +543,12 @@ free(buf);
 free(pkt);
 /* __________ END CATS ___________________*/
 
-/*  COMMENT OUT portions of OLD RECEIVE UNTIL WORKING */	
+/*  COMMENT OUT portions of OLD RECEIVE ONCE CONVERTED UNTIL WORKING */
+// NEED TO CONFIRM FRAME LENGTH THEN DIVIDE INTO 8191  FIFO IS 64 BYTES WHISKER 255, PACKET 8191 MAX
 #define MAXFRAMES 32
 int CA1::receive() {
 	// we wait for at most 8191 bytes or until a new packet.
-	uint8_t nFrames = MAXFRAMES;  // CA1 sends every frame  6x
+	uint8_t nFrames = MAXFRAMES;  // CA1 sends every frame  1x
 	static uint32_t lastFrame = 0;
 	uint8_t retval = RX_TIMEOUT;
 
