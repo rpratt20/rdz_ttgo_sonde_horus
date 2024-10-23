@@ -85,7 +85,7 @@ int CA1::setup(float frequency, int /*type*/)
 	if(DecoderBase::setup(CA1SetupCfg, sonde.config.ca1.agcbw, sonde.config.ca1.rxbw)!=0) {
 		return 1;
 	}
-#if 0
+# if 0
 	// Now all done in Decoderbase
 	// FSK standby mode, seems like otherweise baudrate cannot be changed?
 	sx1278.setFSK();
@@ -328,7 +328,9 @@ int CA1::decodeframeCA1(uint8_t *data) {
 	}
 	
 	// data is a frame with correct CRC
-	//SondeInfo *si = sonde.si();
+	// SondeInfo *si = sonde.si();
+    // Can this work or do I need CATS CRC computation?
+
 	SondeData *si =&(sonde.si()->d);
 	uint8_t cnt = data[pos_CNT1] & 0x0F;
 	uint32_t cfg = u4(data+pos_CFG);
@@ -468,8 +470,8 @@ int CA1::decodeframeCA1(uint8_t *data) {
 static uint32_t rxdata;
 static bool rxsearching=true;
 
-// search for  THIS NEEDS CHANGE
-// 0xBF3H (or inverse)
+// search for 0xBF3H (or inverse)
+//  THIS NEEDS CHANGE to CATS library
 void CA1::processCA1data(uint8_t dt)
 {
 	for(int i=0; i<8; i++) {
@@ -519,7 +521,8 @@ void CA1::processCA1data(uint8_t dt)
 
 /* ______________CATS processsing code ______________________ */ 
 // CATS needs declarations, structures, types, etc
-//need to match library data structure to rdz naming of data
+// need to match library data structure to rdz naming of data
+// After this portion runs data should be mapped into the above CA1 code
 
 uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
 cats_packet_t* pkt;
@@ -534,6 +537,8 @@ char comment[1024];
 char callsign[255];
 uint8_t ssid;
 uint16_t icon;
+
+// These are not library functions need to rename and rebuild to match library calls
 cats_packet_get_identification(pkt, callsign, &ssid, &icon);
 cats_packet_get_comment(pkt, comment);
 cats_packet_get_gps(pkt, out);
@@ -544,6 +549,7 @@ free(pkt);
 /* __________ END CATS ___________________*/
 
 /*  COMMENT OUT portions of OLD RECEIVE ONCE CONVERTED UNTIL WORKING */
+// Receive below here may work as is
 // NEED TO CONFIRM FRAME LENGTH THEN DIVIDE INTO 8191  FIFO IS 64 BYTES WHISKER 255, PACKET 8191 MAX
 #define MAXFRAMES 32
 int CA1::receive() {
@@ -569,6 +575,8 @@ int CA1::receive() {
 		if(bitRead(value, 6) == 0) { // while FIFO not empty
       			byte data = sx1278.readRegister(REG_FIFO);
 			Serial.printf("%02x:",data);
+
+			//processCA1data is a function shown above and needs conversion to CATS
       			processCA1data(data);
       			value = sx1278.readRegister(REG_IRQ_FLAGS2);
     		} else {
