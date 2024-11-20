@@ -538,20 +538,14 @@ char callsign[255];
 uint8_t ssid;
 uint16_t icon;
 
-// These are not library functions need to rename and rebuild to match library calls
-cats_packet_get_identification(pkt, callsign, &ssid, &icon);
-cats_packet_get_comment(pkt, comment);
-cats_packet_get_gps(pkt, out);
-cats_packet_get_timestamp(pkt);
-
 free(buf);
 free(pkt);
-/* __________ END CATS ___________________*/
+
 
 /*  COMMENT OUT portions of OLD RECEIVE ONCE CONVERTED UNTIL WORKING */
 // Receive below here may work as is
 // NEED TO CONFIRM FRAME LENGTH THEN DIVIDE INTO 8191  FIFO IS 64 BYTES WHISKER 255, PACKET 8191 MAX
-#define MAXFRAMES 32
+#define MAXFRAMES 1
 int CA1::receive() {
 	// we wait for at most 8191 bytes or until a new packet.
 	uint8_t nFrames = MAXFRAMES;  // CA1 sends every frame  1x
@@ -623,8 +617,19 @@ int CA1::receive() {
 
 /* END OF ORIGINAL RECEIVE*/
 
+/* When received proceed with these steps*/
+cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+    // includes these: interleave, ldpc, dewhiten
 
-int CA1::waitRXcomplete() {
+cats_packet_semi_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+    // includes these: CRC, whiskers
+
+ cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
+    // From here transfer data into ttgo structures 
+
+CA1::waitRXcomplete() 
+
+
 	return 0;
 }
 
