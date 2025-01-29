@@ -524,23 +524,24 @@ void CA1::processCA1data(uint8_t dt)
 // need to match library data structure to rdz naming of data
 // After this portion runs data should be mapped into the above CA1 code
 
-uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
-cats_packet_t* pkt;
+//uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
+//cats_packet_t* pkt;
 
-cats_packet_prepare(&pkt);
-if(!cats_packet_from_buf(pkt, buf, bufLen)) {
-    fprintf(stderr, cats_error_str);
-    return -1; // Decode failed
-}
+//cats_packet_prepare(&pkt);
+//if(!cats_packet_from_buf(pkt, buf, bufLen)) {
+    //fprintf(stderr, cats_error_str);
+    //return -1; // Decode failed
+//} 
 
-char comment[1024];
-char callsign[255];
-uint8_t ssid;
-uint16_t icon;
+//char comment[1024];
+//char callsign[255];
+//uint8_t ssid;
+//uint16_t icon;
 
-free(buf);
-free(pkt);
+//free(buf);
+//free(pkt);
 
+// block above is added ?????
 
 /*  COMMENT OUT portions of OLD RECEIVE ONCE CONVERTED UNTIL WORKING */
 // Receive below here may work as is
@@ -614,21 +615,21 @@ int CA1::receive() {
     	return retval;
 }
 
+/*
+// END OF ORIGINAL RECEIVE
 
-/* END OF ORIGINAL RECEIVE*/
-
-/* When received proceed with these steps*/
-cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+// When received proceed with these steps
+int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
     // includes these: interleave, ldpc, dewhiten
 
-cats_packet_semi_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+int cats_packet_semi_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
     // includes these: CRC, whiskers
 
- cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
+int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
     // From here transfer data into ttgo structures 
-
-CA1::waitRXcomplete() 
-
+*/
+int CA1::waitRXcomplete() 
+{
 
 	return 0;
 }
