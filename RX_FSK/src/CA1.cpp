@@ -151,16 +151,16 @@ int CA1::setup(float frequency, int /*type*/)
 }
 
 /* above here should be set for CATS */
-
+//__________________________________________________________________________________
 
 CA1::CA1() {
 }
 
-// This needs change to? offsets need remap. I think max packet length should be 8191 bytes.
+// This needs change BECAUSE offsets need remap. I think max packet length should be 8191 bytes.
 #define CA1_FRAMELEN 49
 
 // offsets from zilog THESE ARE FOR OLD CODE
-// https://github.com/rs1729/RS/blob/master/demod/mod/CA11mod.c
+// https://github.com/rs1729/RS/blob/master/demod/mod/m_mod.c
 // THESE will need figuring to match CATS
 #define OFS -3
 #define pos_CNT1        (OFS+ 3)  //   1 nibble (0x80..0x8F ?)
@@ -176,7 +176,7 @@ CA1::CA1() {
 #define pos_CFG         (OFS+44)  // 2/4 byte
 #define pos_CRC         (OFS+48)  //   2 byte
 
-/* below is partial remap to gps whisker
+/* This is partial remap to gps whisker
 
 #define OFS -3                       // 3 bytes for 0x02 type and 14 length definition
 #define pos_GPSecefX        (OFS+ 2)  //   4 byte latitude
@@ -187,6 +187,7 @@ CA1::CA1() {
 #define pos_        (OFS+14)  //   2 byte speed
 */
 
+// CATS has CRC included in library 
 #define crc16poly 0xA001
 static bool checkCA1CRC(uint8_t *data)
 {
@@ -317,6 +318,7 @@ static void resetca1() {
 	ca1state.dateok = 0;
 }
 
+// CATS lib should replace this next block
 // ret: 1=frame ok; 2=frame with errors; 0=ignored frame (m10dop-alternativ)
 int CA1::decodeframeCA1(uint8_t *data) {
 	printRaw(data, CA1_FRAMELEN);
@@ -329,7 +331,7 @@ int CA1::decodeframeCA1(uint8_t *data) {
 	
 	// data is a frame with correct CRC
 	// SondeInfo *si = sonde.si();
-    // Can this work or do I need CATS CRC computation?
+    // Can this work or do I need CATS CRC computation? I believe we need CATS CRC instead
 
 	SondeData *si =&(sonde.si()->d);
 	uint8_t cnt = data[pos_CNT1] & 0x0F;
@@ -520,26 +522,28 @@ void CA1::processCA1data(uint8_t dt)
 }
 
 /* ______________CATS processsing code ______________________ */ 
-// CATS needs declarations, structures, types, etc
+// CATS may need declarations, structures, types, etc
 // need to match library data structure to rdz naming of data
 // After this portion runs data should be mapped into the above CA1 code
+// I don't understand this and it causes errors. I think data should be passed from receiveand not read.
+// Trying to mirror CATS example.
 
-//uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
-//cats_packet_t* pkt;
+uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
+cats_packet_t* pkt;
 
-//cats_packet_prepare(&pkt);
-//if(!cats_packet_from_buf(pkt, buf, bufLen)) {
-    //fprintf(stderr, cats_error_str);
-    //return -1; // Decode failed
-//} 
+cats_packet_prepare(&pkt);
+if(!cats_packet_from_buf(pkt, buf, bufLen)) {
+    fprintf(stderr, cats_error_str);
+    return -1; // Decode failed
+} 
 
-//char comment[1024];
-//char callsign[255];
-//uint8_t ssid;
-//uint16_t icon;
+char comment[1024];
+char callsign[255];
+uint8_t ssid;
+uint16_t icon;
 
-//free(buf);
-//free(pkt);
+free(buf);
+free(pkt);
 
 // block above is added ?????
 
