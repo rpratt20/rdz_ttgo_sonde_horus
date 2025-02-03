@@ -157,6 +157,7 @@ CA1::CA1() {
 }
 
 // This needs change BECAUSE offsets need remap. I think max packet length should be 8191 bytes.
+// But whiskers are 256 max so this could be 256 but 49 must be incorrect?
 #define CA1_FRAMELEN 49
 
 // offsets from zilog THESE ARE FOR OLD CODE
@@ -318,7 +319,9 @@ static void resetca1() {
 	ca1state.dateok = 0;
 }
 
-// CATS lib should replace this next block
+// CATS lib should replace this next block with
+// int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+
 // ret: 1=frame ok; 2=frame with errors; 0=ignored frame (m10dop-alternativ)
 int CA1::decodeframeCA1(uint8_t *data) {
 	printRaw(data, CA1_FRAMELEN);
@@ -628,6 +631,7 @@ int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
 
 int cats_packet_semi_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
     // includes these: CRC, whiskers
+	// What is first decode or semi_decode?
 
 int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
     // From here transfer data into ttgo structures 
@@ -642,4 +646,25 @@ int CA1::waitRXcomplete()
 CA1 ca1 = CA1();
 	
 
-
+// Match of si sonde_data structure to cats packets:
+// struct st_sonde_data{
+//    char id[10] = ID whisker byte 4 +
+//    char ser[12] = 
+//    Bool validID = 
+//    char typestr[5] = 
+//    int8_t typestr[5] = 
+//    POSITION fields from GPS:
+//    float lat = gps whisker byte 2-5
+//    float long = gps whisker byte 6-9
+//    float alt = node info whisker data index[9] bytes 18-21
+//    float vs = 
+//    float hs = gps whisker byte 14
+//    float dir = gps whisker byte 13
+//    uint8_t sats = 
+//    uint8_t validPos = 
+//    uint32_ t time = 
+//    uint32_t frame = 
+//    Bool validTime = 
+//    float batteryVoltage = node info whisker data index[9] byte 16
+//  
+// }
