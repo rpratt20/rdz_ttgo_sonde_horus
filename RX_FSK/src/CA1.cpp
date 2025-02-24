@@ -188,9 +188,8 @@ CA1::CA1() {
 #define pos_        (OFS+14)  //   2 byte speed
 */
 
-// CATS has CRC included in library 
-#define crc16poly 0xA001
-static bool checkCA1CRC(uint8_t *data)
+// CATS has CRC included in library Don't need this
+"""static bool checkCA1CRC(uint8_t *data)
 {
 	int start = pos_CNT1;
 	int len = 45;
@@ -205,7 +204,7 @@ static bool checkCA1CRC(uint8_t *data)
 	uint16_t crcdat = data[pos_CRC] | (data[pos_CRC+1]<<8);
 	return rem == crcdat ? true : false;
 }
-
+"""
 void CA1::printRaw(uint8_t *data, int len)
 {
 	char buf[3];
@@ -320,15 +319,13 @@ static void resetca1() {
 }
 
 // CATS lib should replace this next block with
-// int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
 
-// ret: 1=frame ok; 2=frame with errors; 0=ignored frame (m10dop-alternativ)
-int CA1::decodeframeCA1(uint8_t *data) {
-	printRaw(data, CA1_FRAMELEN);
 
-	//
-	if(!checkCA1CRC(data)) {
-		// maybe add repairing frames later...
+//int CA1::decodeframeCA1(uint8_t *data) {
+
+	
 		return 2;
 	}
 	
