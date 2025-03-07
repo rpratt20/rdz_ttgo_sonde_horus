@@ -320,8 +320,12 @@ static void resetca1() {
 
 // CATS lib should replace this next block with
 int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
-int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
+   // Includes Deinterleave, LDPC decode, Dewhiten, Call to semi-decode
 
+int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
+   // Includes CRC-Check, whisker-decode, packet_add_whisker
+
+   
 
 //int CA1::decodeframeCA1(uint8_t *data) {
 
@@ -378,35 +382,7 @@ int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
 	// time
 	getca1time(data);
 	return 1;
-#if 0
-	int repairstep = 16;
-	int repl = 0;
-	bool crcok;
-	// error correction, inspired by oe5dxl's sondeudp
-	do {
-		crcok = checkCA1crc(M10_CRCPOS, data);
-		if(crcok || repairstep==0) break;
-		repl = 0;
-		for(int i=0; i<M10_CRCPOS; i++) {
-			if( ((sondeudp_VARSET[i/32]&(1<<(i%32))) == 0)  && (fixcnt[i]>=repairstep) ) {
-				repl++;	
-				data[i] = fixbytes[i];
-			}
-		}
-		repairstep >>= 1;
-	} while(true);
 
-    // NEXT LINE M10_CRCPOS IS INCORRECT FOR CATS. CRC IS LAST 2 BYTES OF PACKET.
-
-	if(crcok) {
-		for(int i=0; i<M10_CRCPOS; i++) {
-			if(fixbytes[i]==data[i] &&fixcnt[i]<255) fixcnt[i]++;
-			else { fixcnt[i]=0; fixbytes[i]=data[i]; }
-		}
-	}
-	Serial.println(crcok?"CRC OK":"CRC NOT OK");
-	Serial.printf(" repair: %d/%d\n", repl, repairstep);
-    //THIS IF AND DATA BELOW IS INCORRECT FOR CATS
 	if(data[1]==0x9F && data[2]==0x20) {
 		Serial.println("Decoding...");
 		// Its a M10
@@ -550,6 +526,9 @@ free(pkt);
 /*  COMMENT OUT portions of OLD RECEIVE ONCE CONVERTED UNTIL WORKING */
 // Receive below here may work as is
 // NEED TO CONFIRM FRAME LENGTH THEN DIVIDE INTO 8191  FIFO IS 64 BYTES WHISKER 255, PACKET 8191 MAX
+// Maybe replace next code with:
+int cats_radio_iface_decode(uint8_t* buf, const size_t buf_len, float* rssi_out)
+
 #define MAXFRAMES 1
 int CA1::receive() {
 	// we wait for at most 8191 bytes or until a new packet.
@@ -654,12 +633,12 @@ CA1 ca1 = CA1();
 //    float lat = gps whisker byte 2-5
 //    float long = gps whisker byte 6-9
 //    float alt = node info whisker data index[9] bytes 18-21
-//    float vs = 
+//    float vs = can be included in comment 
 //    float hs = gps whisker byte 14
 //    float dir = gps whisker byte 13
 //    uint8_t sats = 
 //    uint8_t validPos = 
-//    uint32_ t time = 
+//    uint32_ t time = timrstamp whisker index[2] bytes 3-7
 //    uint32_t frame = 
 //    Bool validTime = 
 //    float batteryVoltage = node info whisker data index[9] byte 16
