@@ -33,8 +33,8 @@ static struct st_CA1state {
 	bool dateok;
 } ca1state;
 
-static byte data1[512];
-static byte *dataptr=data1;
+static byte data[512];
+static byte *dataptr=data;
 
 static uint8_t rxbitc;
 static uint16_t rxbyte;
@@ -188,23 +188,6 @@ CA1::CA1() {
 #define pos_        (OFS+14)  //   2 byte speed
 */
 
-// CATS has CRC included in library Don't need this
-"""static bool checkCA1CRC(uint8_t *data)
-{
-	int start = pos_CNT1;
-	int len = 45;
-	uint16_t rem = 0xffff;
-	for(int i=0; i<len; i++) {
-		rem ^= data[start+i];
-		for(int j=0; j<8; j++) {
-			if(rem&0x1) rem = (rem>>1) ^ crc16poly;
-			else rem = rem>>1;
-		}
-	}
-	uint16_t crcdat = data[pos_CRC] | (data[pos_CRC+1]<<8);
-	return rem == crcdat ? true : false;
-}
-"""
 void CA1::printRaw(uint8_t *data, int len)
 {
 	char buf[3];
@@ -319,19 +302,11 @@ static void resetca1() {
 }
 
 // CATS lib should replace this next block with
-int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len);
    // Includes Deinterleave, LDPC decode, Dewhiten, Call to semi-decode
 
-int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
+int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out);
    // Includes CRC-Check, whisker-decode, packet_add_whisker
-
-   
-
-//int CA1::decodeframeCA1(uint8_t *data) {
-
-	
-		return 2;
-	}
 	
 	// data is a frame with correct CRC
 	// SondeInfo *si = sonde.si();
