@@ -158,24 +158,8 @@ CA1::CA1() {
 
 // This needs change BECAUSE offsets need remap. I think max packet length should be 8191 bytes.
 // But whiskers are 256 max so this could be 256 but 49 must be incorrect?
-#define CA1_FRAMELEN 49
+#define CA1_FRAMELEN 256
 
-// offsets from zilog THESE ARE FOR OLD CODE
-// https://github.com/rs1729/RS/blob/master/demod/mod/m_mod.c
-// THESE will need figuring to match CATS
-#define OFS -3
-#define pos_CNT1        (OFS+ 3)  //   1 nibble (0x80..0x8F ?)
-#define pos_TIME        (OFS+ 4)  // 3*1 byte
-#define pos_GPSecefX    (OFS+ 8)  //   4 byte
-#define pos_GPSecefY    (OFS+12)  //   4 byte
-#define pos_GPSecefZ    (OFS+16)  //   4 byte
-#define pos_GPSecefV    (OFS+20)  // 3*2 byte
-#define pos_GPSnSats    (OFS+26)  //   1 byte (num Sats ?)
-#define pos_PTU1        (OFS+35)  //   4 byte
-#define pos_PTU2        (OFS+39)  //   4 byte
-#define pos_CNT2        (OFS+43)  //   1 byte   (0x01..0x10 ?)
-#define pos_CFG         (OFS+44)  // 2/4 byte
-#define pos_CRC         (OFS+48)  //   2 byte
 
 /* This is partial remap to gps whisker
 
