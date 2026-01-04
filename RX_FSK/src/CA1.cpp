@@ -1,4 +1,3 @@
-
 /* CA1 decoder functions */
 
 #include "CA1.h"
@@ -33,7 +32,7 @@ static struct st_CA1state {
 	bool dateok;
 } ca1state;
 
-static byte data[512];
+static byte data[8192];
 static byte *dataptr=data;
 
 static uint8_t rxbitc;
@@ -133,7 +132,7 @@ int CA1::setup(float frequency, int /*type*/)
 		return 1;
 	}
 
-        // enable RX
+        // enable RX cats 8192 max packet length
         sx1278.setPayloadLength(8191);  // mp3h infinite for now used 0 for this
         //sx1278.setRxConf(0x20);
 	uint16_t afc = sx1278.getRawAFC();
@@ -158,7 +157,7 @@ CA1::CA1() {
 
 // This needs change BECAUSE offsets need remap. I think max packet length should be 8191 bytes.
 // But whiskers are 256 max so this could be 256 but 49 must be incorrect?
-#define CA1_FRAMELEN 256
+#define CA1_FRAMELEN 8192
 
 
 /* This is partial remap to gps whisker
@@ -206,77 +205,7 @@ static uint16_t u2(uint8_t *d)
 extern void wgs84r(double x, double y, double z, double * lat, double * long0, double * heig);
 extern double atang2(double x, double y);
 
-
-void calcgps(uint8_t *buf) {
-	//SondeInfo *si = sonde.si();
-	SondeData *si =&(sonde.si()->d);
-	double wx = i4(buf+pos_GPSecefX) * 0.01;
-	double wy = i4(buf+pos_GPSecefY) * 0.01;
-	double wz = i4(buf+pos_GPSecefZ) * 0.01;
-	double vx = i2(buf+pos_GPSecefV) * 0.01;
-	double vy = i2(buf+pos_GPSecefV+2) * 0.01;
-	double vz = i2(buf+pos_GPSecefV+4) * 0.01;
-	if(wx==0 && wy==0 && wz==0) { if(si->validPos&0x7f) { si->validPos |= 0x80; } return; }
-	// wgs84r
-	double lat, lng, alt;
-	wgs84r(wx, wy, wz, &lat, &lng, &alt);
-	if(alt<-1000 || alt>80000) { if(si->validPos&0x7f) { si->validPos |= 0x80; } return; }
-	si->lat = (float)(lat*DEG);
-	si->lon = (float)(lng*DEG);
-	si->alt = alt;
-	// speeddir
-	double sinlat = sin(lat);
-	double coslat = cos(lat);
-	double sinlng = sin(lng);
-	double coslng = cos(lng);
-	double vn = -vx*sinlat*coslng - vy*sinlat*sinlng + vz*coslat;
-	double ve = -vx*sinlng + vy*coslng;
-	double clb = vx*coslat*coslng + vy*coslat*sinlng + vz*sinlat;
-	double dir = atang2(vn, ve)/RAD;
-	if(dir<0.0) dir+=360.0;
-	si->dir = dir;
-	si->vs = clb;
-	si->hs = sqrt(vn*vn + ve*ve);
-	si->sats = buf[pos_GPSnSats];
-
-	Serial.printf("Pos: %f %f  alt %f  dir %f vs %f hs %f sats %d\n", si->lat, si->lon, si->alt, si->dir, si->vs, si->hs, si->sats);
-	si->validPos = 0x7f;
-}
-static uint32_t getgpstime(uint8_t *buf) {
-	return buf[pos_TIME] * 60*60 + buf[pos_TIME+1] * 60 + buf[pos_TIME+2];
-}
-// unix time stamp from date and time info in frame. 
-static void getca1time(uint8_t *buf) {
-	//SondeInfo *si = sonde.si();
-	SondeData *si =&(sonde.si()->d);
-
-	// gpsdate from CFG frame 15 (0 if not yet received)
-	uint32_t gpsdate = ca1state.gpsdate;
-	uint32_t gpstime = getgpstime(buf);
-	int tt = 0;
-	if(gpsdate) {
-		uint16_t year = (gpsdate%100)+2000;
-		gpsdate /= 100;
-		uint8_t month = gpsdate%100;
-		gpsdate /= 100;
-		uint8_t day = gpsdate % 100;
-		// year-month-day to unix time
-        	tt = (year-1970)*365 + (year-1969)/4; // days since 1970
-        	if(month<=12) { tt += MON[month]; if((year%4)==0 && month>2) tt++; }
-        	tt = (tt+day-1)*(60*60*24);
-		if(gpstime < ca1state.gpsdatetime) tt += 60*60*24; // time wrapped since last date tx
-		Serial.printf("date: %04d-%02d-%02d t%d ", year, month, day, gpstime);
-	}
-	tt += gpstime;
-	si->time = tt;
-	si->vframe = tt - 315964800;
-	Serial.printf(" ca1 TIMESTAMP: %d\n", tt);
-}
-
-static uint8_t hex(uint32_t n) {
-	n = n % 16;
-	return (n<10) ? (n+'0') : (n-10+'A');
-}
+// need gps whisker mapped to *buf
 
 static void resetca1() {
 	ca1state.id1 = ca1state.id2 = 0;
@@ -297,164 +226,7 @@ int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out);
     // Can this work or do I need CATS CRC computation? I believe we need CATS CRC instead
 
 	SondeData *si =&(sonde.si()->d);
-	uint8_t cnt = data[pos_CNT1] & 0x0F;
-	uint32_t cfg = u4(data+pos_CFG);
-	if(cnt==15) {
-		// date
-		ca1state.gpsdate = cfg;
-		ca1state.gpsdatetime = getgpstime(data);
-		ca1state.dateok = true;
-	} else if(cnt==13) {
-		// id2
-		if(ca1state.id2 > 0 && ca1state.id2 != cfg) { resetca1
-    (); }
-		ca1state.id2 = cfg;
-		ca1state.idok |= 2;
-	} else if(cnt==12) {
-		// id1
-		if(ca1state.id1 > 0 && ca1state.id1 != cfg) { resetca1();
-		 }
-		ca1state.id1 = cfg;
-		ca1state.idok |= 1;
-	}
-	// get id
-	if((ca1state.idok&3) == 3) {
-		//...
-		//si->type = STYPE_CA1;
-		uint32_t n = ca1state.id1*100000 + ca1state.id2;
-		si->id[0] = 'C';
-		si->id[1] = 'A';
-		si->id[2] = '1';
-		si->id[3] = hex(n/0x100000);
-		si->id[4] = hex(n/0x10000);
-		si->id[5] = hex(n/0x1000);
-		si->id[6] = hex(n/0x100);
-		si->id[7] = hex(n/0x10);
-		si->id[8] = hex(n);
-		si->id[9] = 0;
-		snprintf(si->ser, 12, "%u-%u", ca1state.id1, ca1state.id2);
-		si->validID = true;
-	}
-
-	// position
-	calcgps(data);
-	// time
-	getca1time(data);
-	return 1;
-
-	if(data[1]==0x9F && data[2]==0x20) {
-		Serial.println("Decoding...");
-		// Its a M10
-		// getid...
-		char ids[11];
-		ids[0] = 'M';
-		ids[1] = 'E';
-		ids[2] = hex(data[95]/16);
-		ids[3] = hex(data[95]);
-		ids[4] = hex(data[93]);
-		uint32_t id = data[96] + data[97]*256;
-		ids[5] = hex(id/4096);
-		ids[6] = hex(id/256);
-		ids[7] = hex(id/16);
-		ids[8] = hex(id);
-		ids[9] = 0;
-		strncpy(sonde.si()->id, ids, 10);
-		ids[0] = hex(data[95]/16);
-		ids[1] = dez((data[95]&0x0f)/10);
-		ids[2] = dez((data[95]&0x0f));
-		ids[3] = dez(data[93]);
-		ids[4] = dez(id>>13);
-		id &= 0x1fff;
-		ids[5] = dez(id/1000); 
-		ids[6] = dez((id/100)%10);
-		ids[7] = dez((id/10)%10);
-		ids[8] = dez(id%10);
-		strncpy(sonde.si()->ser, ids, 10);
-		sonde.si()->validID = true;
-		Serial.printf("ID is %s [%02x %02x %d]\n", ids, data[95], data[93], id);
-		// ID printed on sonde is ...-.-abbbb, with a=id>>13, bbbb=id&0x1fff in decimal
-		// position data
-		sonde.si()->lat = getint32(data+14) * DEGMUL;
-		sonde.si()->lon = getint32(data+18) * DEGMUL;
-		sonde.si()->alt = getint32(data+22) * 0.001;
-		float ve = getint16(data+4)*VMUL;
-		float vn = getint16(data+6)*VMUL;
-		sonde.si()->vs = getint16(data+8) * VMUL;
-		sonde.si()->hs = sqrt(ve*ve+vn*vn);
-		float dir = atan2(vn, ve)*(1.0/RAD);
-		if(dir<0) dir+=360;
-		sonde.si()->dir = dir;
-		sonde.si()->validPos = 0x3f;
-
- 		uint32_t gpstime = getint32(data+10);
-                uint16_t gpsweek = getint16(data+32);
-                        // UTC is GPSTIME - 18s (24*60*60-18 = 86382)
-                        // one week = 7*24*60*60 = 604800 seconds
-                        // unix epoch starts jan 1st 1970 0:00
-                        // gps time starts jan 6, 1980 0:00. thats 315964800 epoch seconds.
-                        // subtracting 86400 yields 315878400UL
-                sonde.si()->time = (gpstime/1000) + 86382 + gpsweek*604800 + 315878400UL;
-                sonde.si()->validTime = true;
-	} else {
-		Serial.printf("data is %02x %02x %02x\n", data[0], data[1], data[2]);
-		return 0;
-	}
-	return crcok?1:2;
-#endif
-	return 0;
-}
-
-static uint32_t rxdata;
-static bool rxsearching=true;
-
-// search for 0xBF3H (or inverse)
-//  THIS NEEDS CHANGE to CATS library
-void CA1::processCA1data(uint8_t dt)
-{
-	for(int i=0; i<8; i++) {
-		uint8_t d = (dt&0x80)?1:0;
-		dt <<= 1;
-		rxdata = (rxdata<<1) | d;
-		if( (rxbitc&1)==0 ) {
-			// "bit1"
-			rxbyte = (rxbyte<<1) | d;
-		} else {
-			// "bit2" ==> 01 or 10 => 1, otherweise => 0
-			// rxbyte = rxbyte ^ d;
-		}
-		// THIS PROBABLY NEEDS CHANGE
-		// BF3H => 1011 1111 0011 0101 => 10011010 10101010 01011010 01100110 => 9AAA5A66 // 6555a599
-		// THIS IF NEEDS CHANGED VALUES
-		if(rxsearching) {
-			if( rxdata == 0x9AAA5A66 || rxdata == 0x6555a599 ) {
-				rxsearching = false;
-				rxbitc = 0;
-				rxp = 0;
-				headerDetected = 1;
-				Serial.print("SYNC\n");
-                                int rssi=sx1278.getRSSI();
-                                int fei=sx1278.getFEI();
-                                int afc=sx1278.getAFC();
-                                Serial.print("SYNC!!! Test: RSSI="); Serial.print(rssi);
-                                Serial.print(" FEI="); Serial.print(fei);
-                                Serial.print(" AFC="); Serial.println(afc);
-                                sonde.si()->rssi = rssi;
-                                sonde.si()->afc = afc;
-			}
-		} else {
-			rxbitc = (rxbitc+1)%16; // 16;
-			if(rxbitc == 0) { // got 8 data bit
-				dataptr[rxp++] = rxbyte&0xff; // (rxbyte>>1)&0xff;
-				// WHAT IDENTIFIES A CATS? I THINK NOT NEEDED BECAUSE PREAMBLE AND SYNCH ARE SPECIFIED
-				//if(rxp==2 && dataptr[0]==0x45 && dataptr[1]==0x20) { isM20 = true; }
-				if(rxp>=CA1_FRAMELEN) {
-					rxsearching = true;
-					haveNewFrame = decodeframeCA1(dataptr);
-				}
-			}
-		}
-	}
-}
+	
 
 /* ______________CATS processsing code ______________________ */ 
 // CATS may need declarations, structures, types, etc
@@ -463,119 +235,26 @@ void CA1::processCA1data(uint8_t dt)
 // I don't understand this and it causes errors. I think data should be passed from receiveand not read.
 // Trying to mirror CATS example.
 
-uint8_t* buf = sx1278.readRegister(REG_IRQ_FLAGS2); // Buffer with the received packet
-cats_packet_t* pkt;
 
-cats_packet_prepare(&pkt);
-if(!cats_packet_from_buf(pkt, buf, bufLen)) {
-    fprintf(stderr, cats_error_str);
-    return -1; // Decode failed
-} 
 
-char comment[1024];
-char callsign[255];
-uint8_t ssid;
-uint16_t icon;
-
-free(buf);
-free(pkt);
-
-// block above is added ?????
-
-/*  COMMENT OUT portions of OLD RECEIVE ONCE CONVERTED UNTIL WORKING */
-// Receive below here may work as is
-// NEED TO CONFIRM FRAME LENGTH THEN DIVIDE INTO 8191  FIFO IS 64 BYTES WHISKER 255, PACKET 8191 MAX
-// Maybe replace next code with:
-int cats_radio_iface_decode(uint8_t* buf, const size_t buf_len, float* rssi_out)
-
-#define MAXFRAMES 1
-int CA1::receive() {
-	// we wait for at most 8191 bytes or until a new packet.
-	uint8_t nFrames = MAXFRAMES;  // CA1 sends every frame  1x
-	static uint32_t lastFrame = 0;
-	uint8_t retval = RX_TIMEOUT;
-
-	unsigned long t0 = millis();
-	Serial.printf("CA1::receive() start at %ld\n",t0);
-   	while( millis() - t0 < 1100 + (retval!=RX_TIMEOUT)?1000:0 ) {
-		uint8_t value = sx1278.readRegister(REG_IRQ_FLAGS2);
-		if ( bitRead(value, 7) ) {
-			Serial.println("FIFO full");
-      		}
-      		if ( bitRead(value, 4) ) {
-        		Serial.println("FIFO overflow");
-      		}
-      		if ( bitRead(value, 2) == 1 ) {
-        		Serial.println("FIFO: ready()");
-        		sx1278.clearIRQFlags();
-      		}
-		if(bitRead(value, 6) == 0) { // while FIFO not empty
-      			byte data = sx1278.readRegister(REG_FIFO);
-			Serial.printf("%02x:",data);
-
-			//processCA1data is a function shown above and needs conversion to CATS
-      			processCA1data(data);
-      			value = sx1278.readRegister(REG_IRQ_FLAGS2);
-    		} else {
-			if(headerDetected) {
-				t0 = millis(); // restart timer... don't time out if header detected...
-				headerDetected = 0;
-			}
-    			if(haveNewFrame) {
-				Serial.printf("CA1::receive(): new frame complete after %ldms\n", millis()-t0);
-				printRaw(dataptr, CA1_FRAMELEN);
-				nFrames--;
-				// frame with CRC error: just skip and retry (unless we have waited for 6 frames alred)
-				if(haveNewFrame != 1) {
-					Serial.printf("hNF: %d (ERROR)\n", haveNewFrame);
-					retval = RX_ERROR;
-				} else if (sonde.si()->d.time == lastFrame) { // same frame number as seen before => skip
-					Serial.printf("Skipping frame with frame# %d\n", lastFrame);
-					// nothing, wait for next, "new" frame
-				} else {  // good and new frame, return it.
-					Serial.println("Good frame");
-					haveNewFrame = 0;
-					lastFrame = sonde.si()->d.time;
-					return RX_OK;
-				}
-				haveNewFrame = 0;
-#if 0
-				if(nFrames <= 0) {
-					// up to 6 old or erronous frames received => break out
-					Serial.printf("nFrames is %di, giving up\n", nFrames);
-					break;
-				}
-#endif
-			}
-			delay(2);
-    		}
-    	}
-        int32_t afc = sx1278.getAFC();
-        int16_t rssi = sx1278.getRSSI();
-        Serial.printf("receive: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
-	Serial.printf("CA1::receive() timed out\n");
-    	return retval;
-}
-
-/*
 // END OF ORIGINAL RECEIVE
-
+/*
 // When received proceed with these steps
-int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+int cats_packet_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len);
     // includes these: interleave, ldpc, dewhiten
 
-int cats_packet_semi_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len)
+int cats_packet_semi_decode(cats_packet_t* pkt, uint8_t* buf, size_t buf_len);
     // includes these: CRC, whiskers
 	// What is first decode or semi_decode?
 
-int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out)
+int cats_whisker_decode(const uint8_t* data, cats_whisker_t* out);
     // From here transfer data into ttgo structures 
 */
 int CA1::waitRXcomplete() 
-{
+    {
 
 	return 0;
-}
+    }
 
 
 CA1 ca1 = CA1();
